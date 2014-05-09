@@ -65,14 +65,14 @@ describe Turbine::Task do
       task = Turbine::Task.new(reactor) do
         start = Time.now
         sleep 0.1
-        ["Duration", start - Time.now]
+        ["Duration", Time.now - start]
       end
 
       channel << task
 
       init = Time.now
       label, value = task.value
-      delta = init - Time.now
+      delta = Time.now - init
 
       label.should eq "Duration"
       value.should be_within(delta_diff).of(delta)
