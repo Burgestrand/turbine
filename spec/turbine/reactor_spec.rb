@@ -25,6 +25,15 @@ describe Turbine::Reactor do
     it "raises an error if no block was given" do
       expect { reactor.spawn }.to raise_error(ArgumentError, "no block given")
     end
+
+    it "raises an error if spawned inside the reactor" do
+      task = reactor.spawn do
+        subtask = reactor.spawn { "B" }
+        ["A", subtask.value]
+      end
+
+      expect { task.value }.to raise_error(Turbine::Error, "cannot spawn task in current reactor")
+    end
   end
 
   describe "#shutdown" do

@@ -52,7 +52,7 @@ module Turbine
     # @return [Task]
     def spawn
       if Reactor.current == self
-        yield
+        raise Error, "cannot spawn task in current reactor"
       elsif block_given?
         enqueue(Proc.new)
       else
