@@ -1,3 +1,5 @@
+require "fiber"
+
 module Turbine
   class Fiber < ::Fiber
     def initialize(task)
