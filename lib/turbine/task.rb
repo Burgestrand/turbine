@@ -1,10 +1,6 @@
 module Turbine
   class Task
     class << self
-      def yield(*args, **kwargs, &block)
-        ::Fiber.yield(*args, **kwargs, &block)
-      end
-
       def current
         fiber = ::Fiber.current
         fiber.task if fiber.is_a?(Turbine::Fiber)

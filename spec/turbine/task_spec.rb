@@ -19,10 +19,6 @@ describe Turbine::Task do
     Turbine::Task.new(reactor) { sleep }
   end
 
-  describe ".yield" do
-
-  end
-
   describe ".current" do
     it "returns nil if not in a task" do
       Turbine::Task.current.should be_nil
