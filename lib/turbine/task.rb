@@ -1,3 +1,5 @@
+require "timeout"
+
 module Turbine
   class Task
     class << self
