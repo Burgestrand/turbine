@@ -48,7 +48,8 @@ describe Turbine::Task do
   end
 
   describe "#value" do
-    let(:timeout) { 0.1 }
+    let(:timeout) { 0.05 }
+    let(:delta_diff) { 0.005 }
 
     it "waits if there is no value available" do
       task = Turbine::Task.new(reactor) do
@@ -64,7 +65,7 @@ describe Turbine::Task do
       delta = init - Time.now
 
       label.should eq "Duration"
-      value.should be_within(0.01).of(delta)
+      value.should be_within(delta_diff).of(delta)
     end
 
     it "returns the value if one is available" do
@@ -90,7 +91,7 @@ describe Turbine::Task do
 
       start = Time.now
       expect { sleepy_task.value(timeout) }.to raise_error(TimeoutError, /#{timeout}s/)
-      (Time.now - start).should be_within(0.01).of(timeout)
+      (Time.now - start).should be_within(delta_diff).of(timeout)
     end
 
     it "yields if timed out and block given" do
@@ -98,7 +99,7 @@ describe Turbine::Task do
 
       start = Time.now
       sleepy_task.value(timeout) { :timeout }.should eq :timeout
-      (Time.now - start).should be_within(0.01).of(timeout)
+      (Time.now - start).should be_within(delta_diff).of(timeout)
     end
   end
 
