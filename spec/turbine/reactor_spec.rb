@@ -41,6 +41,12 @@ describe Turbine::Reactor do
       task.thread.should_not eql(Thread.current)
       task.value.should eq "This is a value"
     end
+
+    it "raises an error if reactor is shutting down" do
+      reactor.shutdown
+
+      expect { reactor.spawn {} }.to raise_error(Turbine::TerminatingError, "reactor is terminating")
+    end
   end
 
   describe "#shutdown" do

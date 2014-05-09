@@ -12,11 +12,12 @@ module Turbine
       @queue_mutex = Mutex.new
       @queue_cond = ConditionVariable.new
 
+      @running = true
+      @shutdown = false
       @thread = Turbine::Thread.new(self) do
         begin
-          loop do
+          while @running
             task = @queue_mutex.synchronize do
-              break if @queue.nil?
               @queue_cond.wait(@queue_mutex) if @queue.empty?
               @queue.pop
             end
@@ -62,22 +63,26 @@ module Turbine
 
     # @return [Task]
     def shutdown
-      cleanup = lambda { yield if block_given? }
-      enqueue(work) { @queue = nil }
+      cleanup = lambda do
+        @running = false
+        yield if block_given?
+      end
+
+      enqueue(cleanup) { @shutdown = true }
     end
 
     private
 
     def enqueue(callable)
       @queue_mutex.synchronize do
-        if @queue
+        if @shutdown
+          raise TerminatingError, "reactor is terminating"
+        else
           task = Turbine::Task.new(@thread, &callable)
           @queue << task
           @queue_cond.broadcast
           yield task if block_given?
           task
-        else
-          raise TerminatingError, "reactor is terminating"
         end
       end
     end

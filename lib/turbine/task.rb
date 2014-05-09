@@ -28,9 +28,9 @@ module Turbine
         # this branch ensures thread-safety for the other branch
         raise OwnershipError, "#{Thread.current} != #{thread}"
       else
-        @fiber ||= Turbine::Fiber.new(self) do |*args, **kwargs, &block|
+        @fiber ||= Turbine::Fiber.new(self) do |*args, &block|
           begin
-            value = @block.call(*args, **kwargs, &block)
+            value = @block.call(*args, &block)
             set(:value) { value }
           rescue Exception => ex
             set(:error) { ex }
@@ -81,6 +81,8 @@ module Turbine
         @value_type = type
         @value = yield
         @value_cond.broadcast
+
+        @value
       end
     end
   end
