@@ -32,25 +32,25 @@ describe Turbine::Task do
     end
   end
 
-  describe "#owner" do
-    it "returns the task owner" do
+  describe "#thread" do
+    it "returns the task thread" do
       task = Turbine::Task.new(other_thread)
-      task.owner.should eq(other_thread)
+      task.thread.should eq(other_thread)
     end
   end
 
   describe "#fiber" do
-    it "raises an error if not the task owner" do
+    it "raises an error if not the task thread" do
       task = Turbine::Task.new(other_thread)
       expect { task.fiber }.to raise_error(Turbine::OwnershipError)
     end
 
-    it "returns the underlying task fiber if we are the owner thread" do
-      owner_thread = Thread.new(channel) { |q| q.pop.fiber }
+    it "returns the underlying task fiber if we are the task thread" do
+      task_thread = Thread.new(channel) { |q| q.pop.fiber }
 
-      task = Turbine::Task.new(owner_thread)
+      task = Turbine::Task.new(task_thread)
       channel << task
-      fiber = owner_thread.value
+      fiber = task_thread.value
 
       fiber.should be_a(Turbine::Fiber)
       fiber.task.should eq(task)

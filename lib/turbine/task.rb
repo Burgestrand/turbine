@@ -9,8 +9,8 @@ module Turbine
       end
     end
 
-    def initialize(owner, &block)
-      @owner = owner
+    def initialize(thread, &block)
+      @thread = thread
       @block = block
 
       @value_mutex = Mutex.new
@@ -21,12 +21,12 @@ module Turbine
       @value_type = nil
     end
 
-    attr_reader :owner
+    attr_reader :thread
 
     def fiber
-      if Thread.current != owner
+      if Thread.current != thread
         # this branch ensures thread-safety for the other branch
-        raise OwnershipError, "#{Thread.current} != #{owner}"
+        raise OwnershipError, "#{Thread.current} != #{thread}"
       else
         @fiber ||= Turbine::Fiber.new(self) do |*args, **kwargs, &block|
           begin
