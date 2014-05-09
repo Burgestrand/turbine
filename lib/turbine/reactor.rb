@@ -1,9 +1,9 @@
 module Turbine
-  class Reactor < ::Thread
+  class Reactor
     class << self
       def current
-        thread = Thread.current
-        thread if thread.is_a?(Reactor)
+        thread = ::Thread.current
+        thread.reactor if thread.is_a?(Turbine::Thread)
       end
     end
 
@@ -12,7 +12,7 @@ module Turbine
       @queue_mutex = Mutex.new
       @queue_cond = ConditionVariable.new
 
-      super do
+      @thread = Turbine::Thread.new(self) do
         begin
           loop do
             task = @queue_mutex.synchronize do
@@ -40,6 +40,8 @@ module Turbine
       end
     end
 
+    attr_reader :thread
+
     attr_reader :error
 
     def crashed?
@@ -51,8 +53,10 @@ module Turbine
     def spawn
       if Reactor.current == self
         yield
-      else
+      elsif block_given?
         enqueue(Proc.new)
+      else
+        raise ArgumentError, "no block given"
       end
     end
 
@@ -67,7 +71,7 @@ module Turbine
     def enqueue(callable)
       @queue_mutex.synchronize do
         if @queue
-          task = Task.new(callable)
+          task = Turbine::Task.new(@thread, &callable)
           @queue << task
           @queue_cond.broadcast
           yield task if block_given?

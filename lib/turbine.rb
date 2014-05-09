@@ -1,4 +1,6 @@
 require "turbine/fiber"
+require "turbine/thread"
+
 require "turbine/task"
 require "turbine/reactor"
 
