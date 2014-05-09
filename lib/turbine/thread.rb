@@ -1,8 +1,8 @@
 module Turbine
   class Thread < ::Thread
-    def initialize(reactor, *args, **kwargs)
+    def initialize(reactor, *args)
       @reactor = reactor
-      super(*args, **kwargs)
+      super(*args)
     end
 
     attr_reader :reactor
