@@ -15,6 +15,9 @@ describe Turbine::Reactor do
     end
   end
 
+  describe "#alive?" do
+  end
+
   describe "#crashed?" do
   end
 
@@ -45,7 +48,7 @@ describe Turbine::Reactor do
     it "raises an error if reactor is shutting down" do
       reactor.shutdown
 
-      expect { reactor.spawn {} }.to raise_error(Turbine::TerminatingError, "reactor is terminating")
+      expect { reactor.spawn {} }.to raise_error(Turbine::DeadReactorError, "reactor is terminated")
     end
   end
 

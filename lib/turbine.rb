@@ -6,7 +6,7 @@ require "turbine/reactor"
 
 module Turbine
   class Error < StandardError; end
-  class TerminatingError < StandardError; end
+  class DeadReactorError < StandardError; end
   class OwnershipError < StandardError; end
 
   @reactor = Reactor.new

@@ -49,6 +49,10 @@ module Turbine
       !! error
     end
 
+    def alive?
+      @thread.alive? and not @shutdown
+    end
+
     # @yield
     # @return [Task]
     def spawn
@@ -75,14 +79,14 @@ module Turbine
 
     def enqueue(callable)
       @queue_mutex.synchronize do
-        if @shutdown
-          raise TerminatingError, "reactor is terminating"
-        else
+        if alive?
           task = Turbine::Task.new(@thread, &callable)
           @queue << task
           @queue_cond.broadcast
           yield task if block_given?
           task
+        else
+          raise DeadReactorError, "reactor is terminated"
         end
       end
     end
