@@ -23,6 +23,10 @@ module Turbine
 
     attr_reader :thread
 
+    def reactor
+      thread.reactor
+    end
+
     def fiber
       if Thread.current != thread
         # this branch ensures thread-safety for the other branch

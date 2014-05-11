@@ -1,5 +1,6 @@
 describe Turbine::Task do
-  let(:other_thread) { Thread.new {} }
+  let(:reactor) { Object.new }
+  let(:other_thread) { Turbine::Thread.new(reactor) {} }
   let(:channel) { Queue.new }
   let(:reactor) do
     Thread.new(channel) do |q|
@@ -39,6 +40,13 @@ describe Turbine::Task do
     end
   end
 
+  describe "#reactor" do
+    it "returns the task thread reactor" do
+      task = Turbine::Task.new(other_thread)
+      task.reactor.should eq(reactor)
+    end
+  end
+
   describe "#fiber" do
     it "raises an error if not the task thread" do
       task = Turbine::Task.new(other_thread)
@@ -59,7 +67,7 @@ describe Turbine::Task do
 
   describe "#value" do
     let(:timeout) { 0.05 }
-    let(:delta_diff) { 0.005 }
+    let(:delta_diff) { 0.01 }
 
     it "waits if there is no value available" do
       task = Turbine::Task.new(reactor) do
