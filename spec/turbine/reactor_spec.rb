@@ -125,5 +125,29 @@ describe Turbine::Reactor do
   end
 
   describe "#shutdown" do
+    it "cleanly terminates the reactor, letting any scheduled tasks finish first" do
+      order = Queue.new
+      start = Queue.new
+
+      reactor.spawn { start.pop }
+      reactor.spawn { order << "A" }
+      reactor.spawn { order << "B" }
+      reactor.shutdown { order << "C" }
+
+      start.push(nil)
+
+      a = order.pop
+      b = order.pop
+      c = order.pop
+
+      [a, b, c].should eq(["A", "B", "C"])
+
+      reactor.thread.join
+    end
+
+    it "executes the given block as a final task" do
+      task = reactor.shutdown { "A" }
+      task.value.should eq "A"
+    end
   end
 end
