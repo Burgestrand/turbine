@@ -79,11 +79,17 @@ describe Turbine::Reactor do
 
     it "raises an error if spawned inside the reactor" do
       task = reactor.spawn do
-        subtask = reactor.spawn { "B" }
-        ["A", subtask.value]
+        begin
+          reactor.spawn { "B" }
+        rescue => error
+          error
+        else
+          raise "This was a failure"
+        end
       end
 
-      expect { task.value }.to raise_error(Turbine::Error, "cannot spawn task in current reactor")
+      task.value.should be_a(Turbine::Error)
+      task.value.message.should eq "cannot spawn task in current reactor"
     end
 
     it "creates and schedules a task for execution" do
