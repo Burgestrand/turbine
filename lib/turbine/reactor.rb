@@ -51,11 +51,11 @@ module Turbine
 
     # @yield
     # @return [Task]
-    def spawn
+    def spawn(*args)
       if Reactor.current == self
         raise Error, "cannot spawn task in current reactor"
       elsif block_given?
-        enqueue(Proc.new)
+        enqueue(task { yield *args })
       else
         raise ArgumentError, "no block given"
       end
@@ -63,7 +63,7 @@ module Turbine
 
     # @return [Task]
     def shutdown
-      cleanup = lambda do
+      cleanup = task do
         @running = false
         yield if block_given?
       end
@@ -73,10 +73,15 @@ module Turbine
 
     private
 
-    def enqueue(callable)
+    def task
+      Turbine::Task.new(@thread) do
+        yield
+      end
+    end
+
+    def enqueue(task)
       @queue_mutex.synchronize do
         if alive?
-          task = Turbine::Task.new(@thread, &callable)
           @queue.push(task)
           @queue_cond.broadcast
           yield task if block_given?

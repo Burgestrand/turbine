@@ -99,6 +99,11 @@ describe Turbine::Reactor do
       task.value.should eq "This is a value"
     end
 
+    it "passes along any arguments given to spawn" do
+      task = reactor.spawn(:a, :b) { |a, b| [b, a] }
+      task.value.should eq([:b, :a])
+    end
+
     it "raises an error if reactor is in the process of shutting down" do
       task = reactor.spawn { sleep } # prevent reactor from shutting down
       reactor.shutdown
