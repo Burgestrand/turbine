@@ -22,11 +22,7 @@ module Turbine
               @queue.shift
             end
 
-            begin
-              task.fiber.resume
-            rescue Exception => ex
-              # TODO: should an error raised from the task crash the reactor?
-            end
+            task.fiber.resume
           end
 
           unless @queue.empty?

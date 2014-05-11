@@ -16,12 +16,60 @@ describe Turbine::Reactor do
   end
 
   describe "#alive?" do
+    it "is true if the reactor is running" do
+      reactor.should be_alive
+    end
+
+    it "is false if reactor has crashed" do
+      task = reactor.spawn { raise "OMG" }
+      reactor.thread.join rescue nil
+      reactor.should_not be_alive
+    end
+
+    it "is false if the reactor is shutting down" do
+      task = reactor.spawn { sleep }
+      reactor.shutdown
+      reactor.should_not be_alive
+    end
+
+    it "is false if the reactor has shut down" do
+      reactor.shutdown
+      reactor.thread.join rescue nil
+      reactor.should_not be_alive
+    end
   end
 
   describe "#crashed?" do
+    it "is false if the reactor is running" do
+      reactor.should_not be_crashed
+    end
+
+    it "is true if reactor has crashed" do
+      task = reactor.spawn { raise "OMG" }
+      reactor.thread.join rescue nil
+      reactor.should be_crashed
+    end
+
+    it "is false if the reactor is shutting down" do
+      task = reactor.spawn { sleep }
+      reactor.shutdown
+      reactor.should_not be_crashed
+    end
+
+    it "is false if the reactor has shut down" do
+      reactor.shutdown
+      reactor.thread.join rescue nil
+      reactor.should_not be_crashed
+    end
   end
 
   describe "#error" do
+    it "returns the error that crashed the reactor" do
+      error = RuntimeError.new("This is an error")
+      task = reactor.spawn { raise error }
+      reactor.thread.join rescue nil
+      reactor.error.should eql(error)
+    end
   end
 
   describe "#spawn" do
