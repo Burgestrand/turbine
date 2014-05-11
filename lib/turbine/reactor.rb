@@ -19,7 +19,7 @@ module Turbine
           while @running
             task = @queue_mutex.synchronize do
               @queue_cond.wait(@queue_mutex) if @queue.empty?
-              @queue.pop
+              @queue.shift
             end
 
             begin
@@ -81,7 +81,7 @@ module Turbine
       @queue_mutex.synchronize do
         if alive?
           task = Turbine::Task.new(@thread, &callable)
-          @queue << task
+          @queue.push(task)
           @queue_cond.broadcast
           yield task if block_given?
           task

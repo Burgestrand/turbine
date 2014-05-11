@@ -45,7 +45,24 @@ describe Turbine::Reactor do
       task.value.should eq "This is a value"
     end
 
-    it "raises an error if reactor is shutting down" do
+    it "schedules tasks in the order they were spawned" do
+      queue = Queue.new
+      start = Queue.new
+
+      reactor.spawn { start.pop; queue << "A" }
+      reactor.spawn { start.pop; queue << "B" }
+
+      start.push(nil)
+      start.push(nil)
+
+      a = queue.pop
+      b = queue.pop
+
+      a.should eq "A"
+      b.should eq "B"
+    end
+
+    it "raises an error if reactor is not alive" do
       reactor.shutdown
 
       expect { reactor.spawn {} }.to raise_error(Turbine::DeadReactorError, "reactor is terminated")
