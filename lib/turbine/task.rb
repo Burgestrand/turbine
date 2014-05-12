@@ -3,12 +3,17 @@ require "timeout"
 module Turbine
   class Task
     class << self
+      # @return [Turbine::Fiber, nil] the fiber currently executing in the current thread
       def current
         fiber = ::Fiber.current
         fiber.task if fiber.is_a?(Turbine::Fiber)
       end
     end
 
+    # Create a new task, assigned to run on the given thread.
+    #
+    # @param [Turbine::Thread] thread assigned to this task
+    # @yield task body
     def initialize(thread, &block)
       @thread = thread
       @block = block
@@ -21,12 +26,18 @@ module Turbine
       @value_type = nil
     end
 
+    # @return [Turbine::Thread] thread assigned to this task
     attr_reader :thread
 
+    # @return [Turbine::Reactor] reactor assigned to this task
     def reactor
       thread.reactor
     end
 
+    # Retrieve the fiber powering this task.
+    #
+    # @return [Turbine::Fiber]
+    # @raise [OwnershipError] if calling thread is not same as {#thread}
     def fiber
       if Thread.current != thread
         # this branch ensures thread-safety for the other branch
@@ -44,6 +55,14 @@ module Turbine
       end
     end
 
+    # Retrieve or wait for the value the task will resolve into.
+    #
+    # Blocks if until a value is available, or until the timeout
+    # is reached.
+    #
+    # @param [Integer, nil] timeout how long to wait for value before timing out
+    # @yield if block given, yields instead of raising an error on timeout
+    # @raise [TimeoutError] if waiting timeout was reached
     def value(timeout = nil)
       @value_mutex.synchronize do
         @value_cond.wait(@value_mutex, timeout) unless done?
@@ -60,14 +79,17 @@ module Turbine
       end
     end
 
+    # @return [Boolean] true if this task terminated with an error
     def error?
       @value_type == :error
     end
 
+    # @return [Boolean] true if this task terminated with a value
     def value?
       @value_type == :value
     end
 
+    # @return [Boolean] true if this task has finished executing
     def done?
       value_type = @value_type
       value_type == :value || value_type == :error
@@ -79,7 +101,7 @@ module Turbine
       @value_mutex.synchronize do
         if @value_type
           # this should never happen, because fibers cannot cross thread boundaries
-          raise DoubleResultError, "a #{@value_type} value exist"
+          raise Error, "a #{@value_type} value exist; this should never happen!"
         end
 
         @value_type = type

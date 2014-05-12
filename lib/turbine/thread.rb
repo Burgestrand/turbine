@@ -5,6 +5,7 @@ module Turbine
       super(*args)
     end
 
+    # @return [Turbine::Reactor] the reactor assigned to this thread
     attr_reader :reactor
   end
 end
