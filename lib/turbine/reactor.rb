@@ -1,6 +1,7 @@
 module Turbine
   class Reactor
     class << self
+      # @return [Turbine::Reactor, nil] the reactor powering the current thread
       def current
         thread = ::Thread.current
         thread.reactor if thread.is_a?(Turbine::Thread)
@@ -33,20 +34,27 @@ module Turbine
       end
     end
 
+    # @return [Turbine::Thread] thread powering the reactor
     attr_reader :thread
 
+    # @return [Exception, nil] error that caused reactor to crash, if any
     attr_reader :error
 
+    # @return [Boolean] true if reactor has crashed with an error
     def crashed?
       !! error
     end
 
+    # @return [Boolean] true if the reactor is running
     def running?
       @thread.alive? and not @shutdown
     end
 
-    # @yield
-    # @return [Task]
+    # Spawn a task with the given block for later execution in the reactor.
+    #
+    # @param [Array] args arguments to pass to the block
+    # @yield [*args] task body
+    # @return [Turbine::Task]
     def spawn(*args)
       if Reactor.current == self
         raise Error, "cannot spawn task in current reactor"
@@ -57,7 +65,11 @@ module Turbine
       end
     end
 
-    # @return [Task]
+    # Schedule a shutdown of the reactor after all enqueued tasks have finished.
+    #
+    # @param [Array] args arguments to pass to the block
+    # @yield [*args] task body
+    # @return [Turbine::Task]
     def shutdown(*args)
       cleanup = task do
         @running = false
