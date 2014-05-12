@@ -15,27 +15,27 @@ describe Turbine::Reactor do
     end
   end
 
-  describe "#alive?" do
+  describe "#running?" do
     it "is true if the reactor is running" do
-      reactor.should be_alive
+      reactor.should be_running
     end
 
     it "is false if reactor has crashed" do
       task = reactor.spawn { raise "OMG" }
       reactor.thread.join rescue nil
-      reactor.should_not be_alive
+      reactor.should_not be_running
     end
 
     it "is false if the reactor is shutting down" do
       task = reactor.spawn { sleep }
       reactor.shutdown
-      reactor.should_not be_alive
+      reactor.should_not be_running
     end
 
     it "is false if the reactor has shut down" do
       reactor.shutdown
       reactor.thread.join rescue nil
-      reactor.should_not be_alive
+      reactor.should_not be_running
     end
   end
 
@@ -128,7 +128,7 @@ describe Turbine::Reactor do
       b.should eq "B"
     end
 
-    it "raises an error if reactor is not alive" do
+    it "raises an error if reactor is not running" do
       reactor.shutdown
 
       expect { reactor.spawn {} }.to raise_error(Turbine::DeadReactorError, "reactor is terminated")

@@ -41,7 +41,7 @@ module Turbine
       !! error
     end
 
-    def alive?
+    def running?
       @thread.alive? and not @shutdown
     end
 
@@ -77,7 +77,7 @@ module Turbine
 
     def enqueue(task)
       @shutdown_mutex.synchronize do
-        if alive?
+        if running?
           if @queue.enqueue(task)
             yield task if block_given?
             task
