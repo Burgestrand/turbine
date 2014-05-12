@@ -8,20 +8,16 @@ module Turbine
     end
 
     def initialize
-      @queue = []
-      @queue_mutex = Mutex.new
-      @queue_cond = ConditionVariable.new
+      @queue = Turbine::FIFO.new
 
       @running = true
       @shutdown = false
+      @shutdown_mutex = Mutex.new
+
       @thread = Turbine::Thread.new(self) do
         begin
           while @running
-            task = @queue_mutex.synchronize do
-              @queue_cond.wait(@queue_mutex) if @queue.empty?
-              @queue.shift
-            end
-
+            task = @queue.dequeue
             task.fiber.resume
           end
 
@@ -80,12 +76,14 @@ module Turbine
     end
 
     def enqueue(task)
-      @queue_mutex.synchronize do
+      @shutdown_mutex.synchronize do
         if alive?
-          @queue.push(task)
-          @queue_cond.broadcast
-          yield task if block_given?
-          task
+          if @queue.enqueue(task)
+            yield task if block_given?
+            task
+          else
+            raise DoubleEnqueueError, "task #{task} is already queued"
+          end
         else
           raise DeadReactorError, "reactor is terminated"
         end
