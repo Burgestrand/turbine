@@ -161,6 +161,11 @@ describe Turbine::Reactor do
       task.value.should eq "A"
     end
 
+    it "passes any given arguments to the shutdown task" do
+      task = reactor.shutdown(:a, :b) { |a, b| [b, a] }
+      task.value.should eq([:b, :a])
+    end
+
     it "raises an error if shutdown is scheduled twice" do
       start = Queue.new
       reactor.spawn { start.pop }

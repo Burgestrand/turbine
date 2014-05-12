@@ -58,10 +58,10 @@ module Turbine
     end
 
     # @return [Task]
-    def shutdown
+    def shutdown(*args)
       cleanup = task do
         @running = false
-        yield if block_given?
+        yield *args if block_given?
       end
 
       enqueue(cleanup) { @shutdown = true }
