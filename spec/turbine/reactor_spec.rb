@@ -160,5 +160,13 @@ describe Turbine::Reactor do
       task = reactor.shutdown { "A" }
       task.value.should eq "A"
     end
+
+    it "raises an error if shutdown is scheduled twice" do
+      start = Queue.new
+      reactor.spawn { start.pop }
+      reactor.shutdown
+
+      expect { reactor.shutdown }.to raise_error(Turbine::DeadReactorError)
+    end
   end
 end
