@@ -1,5 +1,6 @@
 require "turbine/fiber"
 require "turbine/thread"
+require "turbine/refinements"
 
 require "turbine/fifo"
 require "turbine/task"

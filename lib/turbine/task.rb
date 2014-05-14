@@ -2,6 +2,8 @@ require "timeout"
 
 module Turbine
   class Task
+    using Turbine::Refinements
+
     class << self
       # @return [Turbine::Fiber, nil] the fiber currently executing in the current thread
       def current
@@ -65,7 +67,9 @@ module Turbine
     # @raise [TimeoutError] if waiting timeout was reached
     def value(timeout = nil)
       @value_mutex.synchronize do
-        @value_cond.wait(@value_mutex, timeout) unless done?
+        @value_cond.wait_until(@value_mutex, timeout) do
+          done?
+        end
       end
 
       if value?
