@@ -70,55 +70,78 @@ describe Turbine::Task do
     let(:timeout) { 0.05 }
     let(:delta_diff) { 0.01 }
 
-    it "waits if there is no value available" do
-      task = Turbine::Task.new(reactor_thread) do
-        start = Time.now
-        sleep 0.1
-        ["Duration", Time.now - start]
+    specify "on the current task"
+    specify "as a cyclic dependency"
+
+    describe "from same reactor" do
+      specify "when task is done"
+      specify "when task is not done"
+
+      specify "when task failed"
+      specify "when waiting timed out without block"
+      specify "when waiting timed out with block"
+    end
+
+    describe "from other reactor" do
+      specify "when task is done"
+      specify "when task is not done"
+
+      specify "when task failed"
+      specify "when waiting timed out without block"
+      specify "when waiting timed out with block"
+    end
+
+    describe "from no reactor" do
+      specify "when task is done" do
+        channel << value_task
+        reactor_thread.join
+
+        # Double-check.
+        value_task.value.should eq "A value!"
+        value_task.value.should eq "A value!"
       end
 
-      channel << task
+      specify "when task is not done" do
+        task = Turbine::Task.new(reactor_thread) do
+          start = Time.now
+          sleep 0.1
+          ["Duration", Time.now - start]
+        end
 
-      init = Time.now
-      label, value = task.value
-      delta = Time.now - init
+        channel << task
 
-      label.should eq "Duration"
-      value.should be_within(delta_diff).of(delta)
-    end
+        init = Time.now
+        label, value = task.value
+        delta = Time.now - init
 
-    it "returns the value if one is available" do
-      channel << value_task
-      reactor_thread.join
+        label.should eq "Duration"
+        value.should be_within(delta_diff).of(delta)
+      end
 
-      # Double-check.
-      value_task.value.should eq "A value!"
-      value_task.value.should eq "A value!"
-    end
+      it "when task failed" do
+        channel << error_task
+        reactor_thread.join rescue nil
 
-    it "raises the error if one is available" do
-      channel << error_task
-      reactor_thread.join rescue nil
+        # Double-check.
+        expect { error_task.value }.to raise_error(RuntimeError, "An error!")
+        expect { error_task.value }.to raise_error(RuntimeError, "An error!")
+      end
 
-      # Double-check.
-      expect { error_task.value }.to raise_error(RuntimeError, "An error!")
-      expect { error_task.value }.to raise_error(RuntimeError, "An error!")
-    end
+      it "when waiting timed out without block" do
+        channel << sleepy_task
 
-    it "raises a timeout error if timed out" do
-      channel << sleepy_task
+        start = Time.now
+        expect { sleepy_task.value(timeout) }.to raise_error(TimeoutError, /#{timeout}s/)
+        (Time.now - start).should be_within(delta_diff).of(timeout)
+      end
 
-      start = Time.now
-      expect { sleepy_task.value(timeout) }.to raise_error(TimeoutError, /#{timeout}s/)
-      (Time.now - start).should be_within(delta_diff).of(timeout)
-    end
+      it "when waiting timed out with block" do
+        channel << sleepy_task
 
-    it "yields if timed out and block given" do
-      channel << sleepy_task
-
-      start = Time.now
-      sleepy_task.value(timeout) { :timeout }.should eq :timeout
-      (Time.now - start).should be_within(delta_diff).of(timeout)
+        start = Time.now
+        sleepy_task.value(timeout) { :timeout }.should eq :timeout
+        (Time.now - start).should be_within(delta_diff).of(timeout)
+      end
     end
   end
 
