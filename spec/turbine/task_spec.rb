@@ -91,7 +91,7 @@ describe Turbine::Task do
       specify "when waiting timed out with block"
     end
 
-    describe "from no reactor" do
+    describe "from outside reactor" do
       specify "when task is done" do
         channel << value_task
         reactor_thread.join
