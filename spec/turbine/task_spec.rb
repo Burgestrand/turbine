@@ -1,23 +1,24 @@
 describe Turbine::Task do
-  let(:reactor) { Object.new }
-  let(:other_thread) { Turbine::Thread.new(reactor) {} }
   let(:channel) { Queue.new }
-  let(:reactor) do
-    Thread.new(channel) do |q|
-      q.pop.fiber.resume
-    end
+
+  let(:reactor) { Object.new }
+  let(:reactor_thread) do
+    Turbine::Thread.new(reactor, channel) { |q| q.pop.fiber.resume }
   end
 
+  let(:other_reactor) { Object.new }
+  let(:other_thread) { Turbine::Thread.new(other_reactor) {} }
+
   let(:error_task) do
-    Turbine::Task.new(reactor) { raise "An error!" }
+    Turbine::Task.new(reactor_thread) { raise "An error!" }
   end
 
   let(:value_task) do
-    Turbine::Task.new(reactor) { "A value!" }
+    Turbine::Task.new(reactor_thread) { "A value!" }
   end
 
   let(:sleepy_task) do
-    Turbine::Task.new(reactor) { sleep }
+    Turbine::Task.new(reactor_thread) { sleep }
   end
 
   describe ".current" do
@@ -26,9 +27,9 @@ describe Turbine::Task do
     end
 
     it "returns the current task if in a task" do
-      task = Turbine::Task.new(reactor) { Turbine::Task.current }
+      task = Turbine::Task.new(reactor_thread) { Turbine::Task.current }
       channel << task
-      reactor.join
+      reactor_thread.join
       task.value.should eql(task)
     end
   end
@@ -43,7 +44,7 @@ describe Turbine::Task do
   describe "#reactor" do
     it "returns the task thread reactor" do
       task = Turbine::Task.new(other_thread)
-      task.reactor.should eq(reactor)
+      task.reactor.should eq(other_reactor)
     end
   end
 
@@ -70,7 +71,7 @@ describe Turbine::Task do
     let(:delta_diff) { 0.01 }
 
     it "waits if there is no value available" do
-      task = Turbine::Task.new(reactor) do
+      task = Turbine::Task.new(reactor_thread) do
         start = Time.now
         sleep 0.1
         ["Duration", Time.now - start]
@@ -88,7 +89,7 @@ describe Turbine::Task do
 
     it "returns the value if one is available" do
       channel << value_task
-      reactor.join
+      reactor_thread.join
 
       # Double-check.
       value_task.value.should eq "A value!"
@@ -97,7 +98,7 @@ describe Turbine::Task do
 
     it "raises the error if one is available" do
       channel << error_task
-      reactor.join rescue nil
+      reactor_thread.join rescue nil
 
       # Double-check.
       expect { error_task.value }.to raise_error(RuntimeError, "An error!")
@@ -124,14 +125,14 @@ describe Turbine::Task do
   describe "#error?" do
     specify "if the task has errored" do
       channel << error_task
-      reactor.join rescue nil
+      reactor_thread.join rescue nil
 
       error_task.should be_error
     end
 
     specify "if the task has succeeded" do
       channel << value_task
-      reactor.join
+      reactor_thread.join
 
       value_task.should_not be_error
     end
@@ -146,14 +147,14 @@ describe Turbine::Task do
   describe "#value?" do
     specify "if the task has errored" do
       channel << error_task
-      reactor.join rescue nil
+      reactor_thread.join rescue nil
 
       error_task.should_not be_value
     end
 
     specify "if the task has succeeded" do
       channel << value_task
-      reactor.join
+      reactor_thread.join
 
       value_task.should be_value
     end
@@ -168,14 +169,14 @@ describe Turbine::Task do
   describe "#done?" do
     specify "if the task has errored" do
       channel << error_task
-      reactor.join rescue nil
+      reactor_thread.join rescue nil
 
       error_task.should be_done
     end
 
     specify "if the task has succeeded" do
       channel << value_task
-      reactor.join
+      reactor_thread.join
 
       value_task.should be_done
     end
