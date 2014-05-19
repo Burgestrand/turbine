@@ -2,8 +2,6 @@ require "timeout"
 
 module Turbine
   class Task
-    using Turbine::Refinements
-
     class << self
       # @return [Turbine::Fiber, nil] the fiber currently executing in the current thread
       def current
@@ -21,7 +19,7 @@ module Turbine
       @block = block
 
       @value_mutex = Mutex.new
-      @value_cond = ConditionVariable.new
+      @value_cond = Turbine::ConditionVariable.new
 
       @called = false
       @value = nil

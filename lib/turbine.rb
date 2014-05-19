@@ -1,6 +1,6 @@
 require "turbine/fiber"
 require "turbine/thread"
-require "turbine/refinements"
+require "turbine/condition_variable"
 
 require "turbine/fifo"
 require "turbine/task"
