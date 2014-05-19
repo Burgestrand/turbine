@@ -29,7 +29,7 @@ describe Turbine::Task do
     it "returns the current task if in a task" do
       task = Turbine::Task.new(reactor_thread) { Turbine::Task.current }
       channel << task
-      reactor_thread.join
+      wait_until_done(reactor_thread)
       task.value.should eql(task)
     end
   end
@@ -52,17 +52,6 @@ describe Turbine::Task do
     it "raises an error if not the task thread" do
       task = Turbine::Task.new(other_thread)
       expect { task.fiber }.to raise_error(Turbine::OwnershipError)
-    end
-
-    it "returns the underlying task fiber if we are the task thread" do
-      task_thread = Thread.new(channel) { |q| q.pop.fiber }
-
-      task = Turbine::Task.new(task_thread)
-      channel << task
-      fiber = task_thread.value
-
-      fiber.should be_a(Turbine::Fiber)
-      fiber.task.should eq(task)
     end
   end
 
@@ -94,119 +83,73 @@ describe Turbine::Task do
     describe "from outside reactor" do
       specify "when task is done" do
         channel << value_task
-        reactor_thread.join
+        wait_until_done(reactor_thread)
 
-        # Double-check.
         value_task.value.should eq "A value!"
-        value_task.value.should eq "A value!"
-      end
-
-      specify "when task is not done" do
-        task = Turbine::Task.new(reactor_thread) do
-          start = Time.now
-          sleep 0.1
-          ["Duration", Time.now - start]
-        end
-
-        channel << task
-
-        init = Time.now
-        label, value = task.value
-        delta = Time.now - init
-
-        label.should eq "Duration"
-        value.should be_within(delta_diff).of(delta)
       end
 
       it "when task failed" do
         channel << error_task
-        reactor_thread.join rescue nil
+        wait_until_done(reactor_thread)
 
-        # Double-check.
         expect { error_task.value }.to raise_error(RuntimeError, "An error!")
-        expect { error_task.value }.to raise_error(RuntimeError, "An error!")
+      end
+
+      specify "when task is not done" do
+        q = Queue.new
+
+        task = Turbine::Task.new(reactor_thread) { q.pop }
+        channel << task
+
+        waiter = Thread.new(task, &:value)
+        wait_until_sleep(waiter)
+        q.push "A"
+
+        waiter.value.should eq "A"
       end
 
       it "when waiting timed out without block" do
         channel << sleepy_task
 
-        start = Time.now
-        expect { sleepy_task.value(timeout) }.to raise_error(TimeoutError, /#{timeout}s/)
-        (Time.now - start).should be_within(delta_diff).of(timeout)
+        expect {
+          expect { sleepy_task.value(timeout) }.to raise_error(TimeoutError, /#{timeout}s/)
+        }.to delay_for(timeout).seconds
       end
 
       it "when waiting timed out with block" do
         channel << sleepy_task
 
-        start = Time.now
-        sleepy_task.value(timeout) { :timeout }.should eq :timeout
-        (Time.now - start).should be_within(delta_diff).of(timeout)
+        expect {
+          sleepy_task.value(timeout) { :timeout }.should eq :timeout
+        }.to delay_for(timeout).seconds
       end
     end
   end
 
-  describe "#error?" do
+  describe "#error?, #value? and #done?" do
     specify "if the task has errored" do
       channel << error_task
-      reactor_thread.join rescue nil
+      wait_until_done(reactor_thread)
 
       error_task.should be_error
-    end
-
-    specify "if the task has succeeded" do
-      channel << value_task
-      reactor_thread.join
-
-      value_task.should_not be_error
-    end
-
-    specify "if the task is not done" do
-      channel << sleepy_task
-
-      sleepy_task.should_not be_error
-    end
-  end
-
-  describe "#value?" do
-    specify "if the task has errored" do
-      channel << error_task
-      reactor_thread.join rescue nil
-
       error_task.should_not be_value
-    end
-
-    specify "if the task has succeeded" do
-      channel << value_task
-      reactor_thread.join
-
-      value_task.should be_value
-    end
-
-    specify "if the task is not done" do
-      channel << sleepy_task
-
-      sleepy_task.should_not be_value
-    end
-  end
-
-  describe "#done?" do
-    specify "if the task has errored" do
-      channel << error_task
-      reactor_thread.join rescue nil
-
       error_task.should be_done
     end
 
     specify "if the task has succeeded" do
       channel << value_task
-      reactor_thread.join
+      wait_until_done(reactor_thread)
 
+      value_task.should_not be_error
+      value_task.should be_value
       value_task.should be_done
     end
 
     specify "if the task is not done" do
       channel << sleepy_task
 
+      sleepy_task.should_not be_error
+      sleepy_task.should_not be_value
       sleepy_task.should_not be_done
     end
   end

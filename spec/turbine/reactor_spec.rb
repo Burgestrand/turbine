@@ -22,7 +22,7 @@ describe Turbine::Reactor do
 
     it "is false if reactor has crashed" do
       task = reactor.spawn { raise "OMG" }
-      reactor.thread.join rescue nil
+      wait_until_done(reactor.thread)
       reactor.should_not be_running
     end
 
@@ -34,7 +34,7 @@ describe Turbine::Reactor do
 
     it "is false if the reactor has shut down" do
       reactor.shutdown
-      reactor.thread.join rescue nil
+      wait_until_done(reactor.thread)
       reactor.should_not be_running
     end
   end
@@ -46,7 +46,7 @@ describe Turbine::Reactor do
 
     it "is true if reactor has crashed" do
       task = reactor.spawn { raise "OMG" }
-      reactor.thread.join rescue nil
+      wait_until_done(reactor.thread)
       reactor.should be_crashed
     end
 
@@ -58,7 +58,7 @@ describe Turbine::Reactor do
 
     it "is false if the reactor has shut down" do
       reactor.shutdown
-      reactor.thread.join rescue nil
+      wait_until_done(reactor.thread)
       reactor.should_not be_crashed
     end
   end
@@ -67,7 +67,7 @@ describe Turbine::Reactor do
     it "returns the error that crashed the reactor" do
       error = RuntimeError.new("This is an error")
       task = reactor.spawn { raise error }
-      reactor.thread.join rescue nil
+      wait_until_done(reactor.thread)
       reactor.error.should eql(error)
     end
   end
