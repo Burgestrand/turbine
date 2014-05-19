@@ -15,50 +15,30 @@ describe Turbine::Reactor do
     end
   end
 
-  describe "#running?" do
-    it "is true if the reactor is running" do
+  describe "#running? and #crashed?" do
+    it "if the reactor is running" do
       reactor.should be_running
-    end
-
-    it "is false if reactor has crashed" do
-      task = reactor.spawn { raise "OMG" }
-      wait_until_done(reactor.thread)
-      reactor.should_not be_running
-    end
-
-    it "is false if the reactor is shutting down" do
-      task = reactor.spawn { sleep }
-      reactor.shutdown
-      reactor.should_not be_running
-    end
-
-    it "is false if the reactor has shut down" do
-      reactor.shutdown
-      wait_until_done(reactor.thread)
-      reactor.should_not be_running
-    end
-  end
-
-  describe "#crashed?" do
-    it "is false if the reactor is running" do
       reactor.should_not be_crashed
     end
 
-    it "is true if reactor has crashed" do
+    it "if the reactor has crashed" do
       task = reactor.spawn { raise "OMG" }
       wait_until_done(reactor.thread)
+      reactor.should_not be_running
       reactor.should be_crashed
     end
 
-    it "is false if the reactor is shutting down" do
+    it "if the the reactor is shutting down" do
       task = reactor.spawn { sleep }
       reactor.shutdown
+      reactor.should_not be_running
       reactor.should_not be_crashed
     end
 
-    it "is false if the reactor has shut down" do
+    it "if the the reactor has shut down" do
       reactor.shutdown
       wait_until_done(reactor.thread)
+      reactor.should_not be_running
       reactor.should_not be_crashed
     end
   end
